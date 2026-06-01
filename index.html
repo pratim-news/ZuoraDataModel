@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zuora Object Model - Enterprise Interactive ERD</title>
+    <!-- Tailwind CSS for high-end workspace presentation -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter & JetBrains Mono Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background-color: #f8fafc;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar style for premium light feel */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Canvas Panning Area Grid dots (Slate-200 aligned) */
+        .dot-grid {
+            background-size: 24px 24px;
+            background-image: radial-gradient(circle, rgba(148, 163, 184, 0.2) 1px, transparent 1px);
+        }
+        #canvas-viewport {
+            cursor: grab;
+            background-color: #f1f5f9;
+        }
+        #canvas-viewport:active {
+            cursor: grabbing;
+        }
+        /* Dragging Node State (Light Card Aesthetics) */
+        .node-card {
+            transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+        }
+        .node-card:active {
+            cursor: grabbing;
+        }
+        /* Glowing connection animation in Light Mode */
+        .glow-line {
+            filter: drop-shadow(0px 0px 4px rgba(16, 185, 129, 0.4));
+            stroke-dasharray: 6, 6;
+            animation: dash 30s linear infinite;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 h-screen w-screen flex flex-col select-none">
+
+    <!-- TOP WORKSPACE BAR -->
+    <header class="h-16 bg-white/95 border-b border-slate-200 px-6 flex items-center justify-between z-30 shrink-0 backdrop-blur-md shadow-sm">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white p-1.5 rounded-lg font-black tracking-tighter text-xl flex items-center justify-center w-10 h-10 shadow-md shadow-emerald-500/20">
+                    Z
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-extrabold text-base tracking-wide text-slate-900">ZUORA</span>
+                        <span class="text-[9px] text-emerald-700 font-extrabold px-2 py-0.5 ml-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 uppercase tracking-wider">Enterprise Architect</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 font-medium">Order-to-Revenue Object Relations Model</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar Options -->
+        <div class="flex items-center space-x-3">
+            <button onclick="addCustomNode()" class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 flex items-center space-x-1.5">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Add Entity</span>
+            </button>
+            <button onclick="addCustomConnection()" class="bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all shadow-md shadow-sky-500/10 hover:shadow-sky-500/20 flex items-center space-x-1.5">
+                <i class="fa-solid fa-link text-xs"></i>
+                <span>Connect Entities</span>
+            </button>
+            <div class="h-6 w-px bg-slate-200"></div>
+            <!-- Path Style Toggle -->
+            <button onclick="togglePathStyle()" id="btn-path-style" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs px-3 py-2 rounded-lg transition flex items-center space-x-2 shadow-sm" title="Toggle Connection Line Style">
+                <i class="fa-solid fa-bezier-curve text-emerald-500"></i>
+                <span>Line: Curved</span>
+            </button>
+            <!-- Show/Hide Fields (Starts as Hidden) -->
+            <button onclick="toggleFieldsDisplay()" id="btn-toggle-fields" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs px-3 py-2 rounded-lg transition flex items-center space-x-2 shadow-sm" title="Toggle Field Visibility">
+                <i class="fa-solid fa-table text-slate-500"></i>
+                <span>Fields: Hidden</span>
+            </button>
+            <!-- Reset Layout -->
+            <button onclick="resetToDefaultLayout()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs px-3 py-2 rounded-lg transition flex items-center space-x-2 shadow-sm" title="Reset Layout Coordinate System">
+                <i class="fa-solid fa-arrow-rotate-left text-amber-500"></i>
+                <span>Reset View</span>
+            </button>
+            <div class="h-6 w-px bg-slate-200"></div>
+            <button onclick="exportJSON()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs px-3 py-2 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-download"></i>
+                <span>Export JSON</span>
+            </button>
+            <label class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs px-3 py-2 rounded-lg transition flex items-center space-x-1.5 cursor-pointer shadow-sm">
+                <i class="fa-solid fa-upload"></i>
+                <span>Import JSON</span>
+                <input type="file" id="import-file" accept=".json" class="hidden" onchange="importJSON(event)">
+            </label>
+        </div>
+    </header>
+
+    <!-- WORKSPACE INTERFACE -->
+    <div class="flex-grow flex relative overflow-hidden">
+        
+        <!-- LEFT CONTROL BOARD / SEARCH / PANEL -->
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 z-20 shadow-sm">
+            <!-- Search & Filters -->
+            <div class="p-4 border-b border-slate-200 bg-slate-50/50">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Search Object Schema</label>
+                <div class="relative">
+                    <input type="text" id="entity-search" placeholder="Search entity, e.g. Account..." oninput="handleSearch(this.value)" class="w-full bg-white border border-slate-200 rounded-lg py-2 pl-9 pr-4 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition shadow-sm">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Domain Switcher -->
+            <div class="p-4 border-b border-slate-200 flex flex-col gap-2">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Functional Domains</label>
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <button onclick="focusGroup('product')" class="flex items-center space-x-1.5 p-2 bg-emerald-550/10 hover:bg-emerald-550/20 text-emerald-700 border border-emerald-200/50 rounded-md transition text-left">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                        <span class="truncate font-semibold">Product Catalog</span>
+                    </button>
+                    <button onclick="focusGroup('orders')" class="flex items-center space-x-1.5 p-2 bg-sky-50 hover:bg-sky-100/70 text-sky-700 border border-sky-200/50 rounded-md transition text-left">
+                        <span class="w-2 h-2 rounded-full bg-sky-500 shrink-0"></span>
+                        <span class="truncate font-semibold">Orders & Subs</span>
+                    </button>
+                    <button onclick="focusGroup('billing')" class="flex items-center space-x-1.5 p-2 bg-amber-50 hover:bg-amber-100/70 text-amber-700 border border-amber-200/50 rounded-md transition text-left">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                        <span class="truncate font-semibold">Billing & Pay</span>
+                    </button>
+                    <button onclick="focusGroup('finance')" class="flex items-center space-x-1.5 p-2 bg-rose-50 hover:bg-rose-100/70 text-rose-700 border border-rose-200/50 rounded-md transition text-left">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                        <span class="truncate font-semibold">Finance Suite</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Entities List -->
+            <div class="flex-grow overflow-y-auto p-4 flex flex-col space-y-2">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Entities</label>
+                    <span id="entity-count" class="text-[10px] code-font bg-slate-100 border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded-md">0 / 48</span>
+                </div>
+                <div id="entities-quick-list" class="space-y-1">
+                    <!-- JS populated quick navigation -->
+                </div>
+            </div>
+
+            <!-- Legend Info Panel -->
+            <div class="p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 space-y-2.5">
+                <p class="font-bold uppercase tracking-wider text-[10px] text-slate-400">Relationship Legend</p>
+                <div class="flex flex-col gap-2 text-[10px]">
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-10 h-4 shrink-0" viewBox="0 0 32 16">
+                            <line x1="0" y1="8" x2="28" y2="8" stroke="#94a3b8" stroke-width="1.5" />
+                            <!-- Crow's foot fork + tick (opens correctly to the right/border) -->
+                            <path d="M 18 1 L 18 15 M 18 8 L 30 8 M 18 8 L 30 3 M 18 8 L 30 13" stroke="#94a3b8" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <span class="text-slate-600 font-medium">One-to-many (Crow's Foot)</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-10 h-4 shrink-0" viewBox="0 0 32 16">
+                            <line x1="0" y1="8" x2="28" y2="8" stroke="#94a3b8" stroke-width="1.5" />
+                            <circle cx="15" cy="8" r="3" stroke="#94a3b8" stroke-width="1.5" fill="#ffffff" />
+                            <line x1="23" y1="2" x2="23" y2="14" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                        <span class="text-slate-600 font-medium">Zero or one</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <svg class="w-10 h-4 shrink-0" viewBox="0 0 32 16">
+                            <line x1="0" y1="8" x2="28" y2="8" stroke="#94a3b8" stroke-width="1.5" />
+                            <line x1="14" y1="2" x2="14" y2="14" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+                            <line x1="22" y1="2" x2="22" y2="14" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                        <span class="text-slate-600 font-medium">One-to-one</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- VIEWPORT WINDOW -->
+        <main id="canvas-viewport" class="flex-grow h-full overflow-hidden relative" onmousedown="startCanvasDrag(event)">
+            
+            <!-- Canvas Grid Layer & Actual SVG -->
+            <div id="canvas-workspace" class="absolute origin-top-left dot-grid" style="transform: translate(0px, 0px) scale(1.0); width: 2300px; height: 1200px;">
+                
+                <!-- Swimlane/Group Backdrops -->
+                <div class="absolute bg-emerald-500/[0.01] border border-dashed border-emerald-500/20 rounded-xl shadow-sm" style="left: 40px; top: 200px; width: 280px; height: 590px;">
+                    <div class="absolute top-4 left-4 font-bold text-xs text-emerald-700 tracking-wider uppercase"><i class="fa-solid fa-folder-tree mr-1.5 text-[10px]"></i>Product Catalog</div>
+                </div>
+                
+                <div class="absolute bg-sky-500/[0.01] border border-dashed border-sky-500/20 rounded-xl shadow-sm" style="left: 360px; top: 40px; width: 490px; height: 730px;">
+                    <div class="absolute top-4 left-4 font-bold text-xs text-sky-700 tracking-wider uppercase"><i class="fa-solid fa-file-contract mr-1.5 text-[10px]"></i>Orders & Subscriptions</div>
+                </div>
+
+                <div class="absolute bg-amber-500/[0.01] border border-dashed border-amber-500/20 rounded-xl shadow-sm" style="left: 890px; top: 40px; width: 1350px; height: 730px;">
+                    <div class="absolute top-4 left-4 font-bold text-xs text-amber-700 tracking-wider uppercase"><i class="fa-solid fa-receipt mr-1.5 text-[10px]"></i>Billing & Payments</div>
+                </div>
+
+                <div class="absolute bg-rose-500/[0.01] border border-dashed border-rose-500/20 rounded-xl shadow-sm" style="left: 40px; top: 810px; width: 2200px; height: 260px;">
+                    <div class="absolute top-4 left-4 font-bold text-xs text-rose-700 tracking-wider uppercase"><i class="fa-solid fa-wallet mr-1.5 text-[10px]"></i>Finance Suite</div>
+                </div>
+
+                <!-- SVG Lines Layer -->
+                <svg id="connections-svg" class="absolute top-0 left-0 w-full h-full pointer-events-none z-0">
+                    <defs>
+                        <!-- Crow's foot / One-to-many markers (12px wide with vertical tick + fork clutching border) -->
+                        <marker id="crow" viewBox="0 0 14 10" refX="12" refY="5" markerWidth="8" markerHeight="7" orient="auto">
+                            <path d="M 4 1 L 4 9 M 4 5 L 12 5 M 4 5 L 12 1 M 4 5 L 12 9" stroke="#94a3b8" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        </marker>
+                        <marker id="crow-selected" viewBox="0 0 14 10" refX="12" refY="5" markerWidth="8" markerHeight="7" orient="auto">
+                            <path d="M 4 1 L 4 9 M 4 5 L 12 5 M 4 5 L 12 1 M 4 5 L 12 9" stroke="#10b981" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        </marker>
+                        <!-- Zero-or-one markers -->
+                        <marker id="zero-one" viewBox="0 0 14 10" refX="12" refY="5" markerWidth="8" markerHeight="7" orient="auto">
+                            <line x1="0" y1="5" x2="12" y2="5" stroke="#94a3b8" stroke-width="1.5"/>
+                            <circle cx="5" cy="5" r="2.5" stroke="#94a3b8" stroke-width="1.5" fill="#ffffff" />
+                            <line x1="10" y1="1" x2="10" y2="9" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+                        </marker>
+                        <marker id="zero-one-selected" viewBox="0 0 14 10" refX="12" refY="5" markerWidth="8" markerHeight="7" orient="auto">
+                            <line x1="0" y1="5" x2="12" y2="5" stroke="#10b981" stroke-width="1.5"/>
+                            <circle cx="5" cy="5" r="2.5" stroke="#10b981" stroke-width="1.5" fill="#ffffff" />
+                            <line x1="10" y1="1" x2="10" y2="9" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+                        </marker>
+                        <!-- One-to-one markers -->
+                        <marker id="one-one" viewBox="0 0 14 10" refX="12" refY="5" markerWidth="8" markerHeight="7" orient="auto">
+                            <line x1="0" y1="5" x2="12" y2="5" stroke="#94a3b8" stroke-width="1.5"/>
+                            <line x1="5" y1="1" x2="5" y2="9" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="10" y1="1" x2="10" y2="9" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+                        </marker>
+                        <marker id="one-one-selected" viewBox="0 0 14 10" refX="12" refY="5" markerWidth="8" markerHeight="7" orient="auto">
+                            <line x1="0" y1="5" x2="12" y2="5" stroke="#10b981" stroke-width="1.5"/>
+                            <line x1="5" y1="1" x2="5" y2="9" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="10" y1="1" x2="10" y2="9" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+                        </marker>
+                        <!-- Plain Reference / Generic Link markers -->
+                        <marker id="normal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                            <path d="M 0 1 L 8 5 L 0 9" fill="#94a3b8" stroke="none"/>
+                        </marker>
+                        <marker id="normal-selected" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                            <path d="M 0 1 L 8 5 L 0 9" fill="#10b981" stroke="none"/>
+                        </marker>
+                    </defs>
+                    <g id="svg-paths-container"></g>
+                </svg>
+
+                <!-- Cards Layer (DOM Nodes) -->
+                <div id="nodes-container" class="absolute top-0 left-0 w-full h-full z-10 pointer-events-none">
+                    <!-- JS populated cards here -->
+                </div>
+
+            </div>
+
+            <!-- Canvas Toolbelt & Quick Actions -->
+            <div class="absolute bottom-6 left-6 bg-white border border-slate-200 rounded-xl p-2 flex items-center space-x-1.5 shadow-lg z-30">
+                <button onclick="adjustScale(0.1)" class="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 transition flex items-center justify-center border border-slate-200" title="Zoom In">
+                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </button>
+                <span id="zoom-value" class="text-xs code-font font-semibold px-2.5 text-slate-700">100%</span>
+                <button onclick="adjustScale(-0.1)" class="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 transition flex items-center justify-center border border-slate-200" title="Zoom Out">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </button>
+                <div class="h-4 w-px bg-slate-200"></div>
+                <button onclick="fitToScreen()" class="w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 transition flex items-center justify-center border border-slate-200" title="Fit Entire ERD Schema">
+                    <i class="fa-solid fa-maximize"></i>
+                </button>
+            </div>
+        </main>
+
+        <!-- RIGHT DETAIL DRAWER & SCHEMA WRITER (Starts Collapsed) -->
+        <aside id="inspector-panel" class="w-0 bg-white border-l border-transparent flex flex-col shrink-0 z-20 transition-all duration-300 ease-in-out overflow-hidden shadow-2xl">
+            <div id="inspector-empty-state" class="flex-grow flex flex-col items-center justify-center p-6 text-center text-slate-400 shrink-0 w-96">
+                <i class="fa-solid fa-circle-info text-4xl mb-4 text-slate-300"></i>
+                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">No Entity Selected</h3>
+                <p class="text-xs text-slate-400 px-4">Click any entity on the canvas or quick navigation list to view, edit fields, configure properties, or change relations.</p>
+            </div>
+
+            <div id="inspector-content" class="hidden h-full flex-col shrink-0 w-96 bg-white">
+                <!-- Inspector Header -->
+                <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+                    <div class="flex items-center space-x-2">
+                        <span id="active-entity-indicator" class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <h2 id="active-entity-title" class="text-base font-extrabold text-slate-800 truncate max-w-[180px]">Entity</h2>
+                    </div>
+                    <button onclick="closeInspector()" class="text-slate-400 hover:text-slate-600 transition text-sm">
+                        <i class="fa-solid fa-times-circle text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 text-xs font-semibold uppercase tracking-wider bg-slate-50/30">
+                    <button onclick="switchTab('properties')" id="tab-btn-properties" class="flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50/30">Properties</button>
+                    <button onclick="switchTab('fields')" id="tab-btn-fields" class="flex-1 py-3 text-center text-slate-400 hover:text-slate-600 border-b border-slate-200">Schema</button>
+                    <button onclick="switchTab('relationships')" id="tab-btn-relationships" class="flex-1 py-3 text-center text-slate-400 hover:text-slate-600 border-b border-slate-200">Relations</button>
+                </div>
+
+                <!-- Tab Body: Properties -->
+                <div id="tab-properties" class="flex-grow overflow-y-auto p-4 space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Entity Name</label>
+                        <input type="text" id="inp-entity-name" oninput="updateActiveNodeProperty('name', this.value)" class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm text-slate-800 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/25 transition shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">API API-Object Name</label>
+                        <input type="text" id="inp-entity-api" oninput="updateActiveNodeProperty('api', this.value)" class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm text-slate-800 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/25 transition code-font shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Functional Group</label>
+                        <select id="inp-entity-group" onchange="updateActiveNodeProperty('group', this.value)" class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm text-slate-800 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/25 transition shadow-sm">
+                            <option value="product">Product Catalog</option>
+                            <option value="orders">Orders & Subscriptions</option>
+                            <option value="billing">Billing & Payments</option>
+                            <option value="finance">Finance Suite</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Architect Description</label>
+                        <textarea id="inp-entity-desc" oninput="updateActiveNodeProperty('desc', this.value)" rows="3" class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs text-slate-800 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/25 transition shadow-sm"></textarea>
+                    </div>
+                    <div class="pt-4 border-t border-slate-200">
+                        <button onclick="deleteActiveEntity()" class="w-full bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 rounded-lg py-2 text-xs font-semibold transition shadow-sm">
+                            <i class="fa-solid fa-trash mr-1.5"></i> Delete Entity From Canvas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab Body: Fields -->
+                <div id="tab-fields" class="flex-grow overflow-y-auto p-4 flex flex-col hidden">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fields Schema</span>
+                        <button onclick="addSchemaField()" class="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center space-x-1">
+                            <i class="fa-solid fa-plus"></i> <span>Add Field</span>
+                        </button>
+                    </div>
+                    <div id="fields-list-container" class="space-y-2 flex-grow overflow-y-auto">
+                        <!-- Populated by fields configuration -->
+                    </div>
+                </div>
+
+                <!-- Tab Body: Relationships -->
+                <div id="tab-relationships" class="flex-grow overflow-y-auto p-4 flex flex-col hidden">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Related Connections</span>
+                        <button onclick="addCustomConnection()" class="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center space-x-1">
+                            <i class="fa-solid fa-plus"></i> <span>Connect</span>
+                        </button>
+                    </div>
+                    <div id="relationships-list-container" class="space-y-2 flex-grow overflow-y-auto">
+                        <!-- Populated with relation items -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- MODALS SECTION -->
+    <!-- Connect Entities Modal -->
+    <div id="modal-connect" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-xl w-full max-w-md p-6 shadow-2xl relative">
+            <button onclick="closeModal('modal-connect')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+                <i class="fa-solid fa-circle-xmark text-lg"></i>
+            </button>
+            <h3 class="text-base font-extrabold text-slate-800 uppercase tracking-wider mb-4">Establish Connection Link</h3>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Source Node (From)</label>
+                    <select id="select-conn-source" class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-800 focus:outline-none focus:border-emerald-500 transition"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Target Node (To)</label>
+                    <select id="select-conn-target" class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-800 focus:outline-none focus:border-emerald-500 transition"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Cardinality Mapping</label>
+                    <select id="select-conn-cardinality" class="w-full bg-white border border-slate-200 rounded-lg py-2 px-3 text-slate-800 focus:outline-none focus:border-emerald-500 transition">
+                        <option value="one-to-many">One-to-many (Crow's Foot)</option>
+                        <option value="zero-to-one">Zero or one</option>
+                        <option value="one-to-one">One-to-one</option>
+                        <option value="normal">Plain Reference / Generic Link</option>
+                    </select>
+                </div>
+                <button onclick="saveCustomConnection()" class="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold py-2.5 rounded-lg transition-all mt-4 shadow-md shadow-emerald-500/10">
+                    Create Dynamic Connection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INITIALIZATION ENGINE & APP CORE -->
+    <script>
+        // GLOBAL GRAPH DATABASE - All 48 entities from the Zuora Object model accurately pre-positioned
+        let defaultNodes = [
+            // PRODUCT CATALOG
+            { 
+                id: 'product', 
+                name: 'Product', 
+                group: 'product', 
+                x: 80, 
+                y: 220, 
+                desc: 'Highest-level catalog offering representation.', 
+                fields: [
+                    {name: 'Id', type: 'Relationship'},
+                    {name: 'Name', type: 'Text'},
+                    {name: 'SKU', type: 'Text'},
+                    {name: 'ProductNumber', type: 'Text'},
+                    {name: 'ProductType', type: 'Text'},
+                    {name: 'Category', type: 'Text'},
+                    {name: 'State', type: 'Text'},
+                    {name: 'Description', type: 'Text'},
+                    {name: 'EffectiveStartDate', type: 'Text'},
+                    {name: 'EffectiveEndDate', type: 'Text'},
+                    {name: 'AllowFeatureChanges', type: 'Boolean'},
+                    {name: 'BundleConfig', type: 'Text'},
+                    {name: 'Version', type: 'Text'},
+                    {name: 'VersionOrdinal', type: 'Integer'},
+                    {name: 'deleted', type: 'Boolean'},
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'}
+                ] 
+            },
+            { 
+                id: 'product_rate_plan', 
+                name: 'Product Rate Plan', 
+                group: 'product', 
+                x: 80, 
+                y: 330, 
+                desc: 'Contains groupings of charges within a product.', 
+                fields: [
+                    {name: 'Id', type: 'Relationship'},
+                    {name: 'ProductId', type: 'Relationship'},
+                    {name: 'Name', type: 'Text'},
+                    {name: 'ProductRatePlanNumber', type: 'Text'},
+                    {name: 'Description', type: 'Text'},
+                    {name: 'EffectiveStartDate', type: 'Text'},
+                    {name: 'EffectiveEndDate', type: 'Text'},
+                    {name: 'Grade', type: 'Integer'},
+                    {name: 'deleted', type: 'Boolean'},
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'}
+                ] 
+            },
+            { 
+                id: 'product_rate_plan_charge', 
+                name: 'Product Rate Plan Charge', 
+                group: 'product', 
+                x: 80, 
+                y: 440, 
+                desc: 'Specifies the rate mechanics and currency behavior.', 
+                fields: [
+                    {name: 'Id', type: 'Relationship'},
+                    {name: 'ProductRatePlanId', type: 'Relationship'},
+                    {name: 'ProductRatePlanChargeNumber', type: 'Text'},
+                    {name: 'Name', type: 'Text'},
+                    {name: 'Description', type: 'Text'},
+                    {name: 'ChargeType', type: 'Text'},
+                    {name: 'ChargeModel', type: 'Text'},
+                    {name: 'BillingPeriod', type: 'Text'},
+                    {name: 'BillingPeriodAlignment', type: 'Integer'},
+                    {name: 'BillingTiming', type: 'Integer'},
+                    {name: 'BillCycleType', type: 'Integer'},
+                    {name: 'BillCycleDay', type: 'Text'},
+                    {name: 'WeeklyBillCycleDay', type: 'Integer'},
+                    {name: 'ListPriceBase', type: 'Integer'},
+                    {name: 'SpecificListPriceBase', type: 'Integer'},
+                    {name: 'SpecificBillingPeriod', type: 'Number'},
+                    {name: 'DefaultQuantity', type: 'Number'},
+                    {name: 'MinQuantity', type: 'Number'},
+                    {name: 'MaxQuantity', type: 'Number'},
+                    {name: 'UOM', type: 'Text'},
+                    {name: 'Taxable', type: 'Boolean'},
+                    {name: 'TaxMode', type: 'Integer'},
+                    {name: 'TaxCode', type: 'Text'},
+                    {name: 'TriggerEvent', type: 'Text'},
+                    {name: 'EndDateCondition', type: 'Integer'},
+                    {name: 'UpToPeriods', type: 'Number'},
+                    {name: 'UpToPeriodsType', type: 'Integer'},
+                    {name: 'SmoothingModel', type: 'Text'},
+                    {name: 'ProrationOption', type: 'Integer'},
+                    {name: 'RatingGroup', type: 'Integer'},
+                    {name: 'ChargeFunction', type: 'Integer'},
+                    {name: 'Optional', type: 'Boolean'},
+                    {name: 'IsAllocationEligible', type: 'Boolean'},
+                    {name: 'IsCommitted', type: 'Boolean'},
+                    {name: 'IsPrepaid', type: 'Boolean'},
+                    {name: 'PrepaidOperationType', type: 'Integer'},
+                    {name: 'PrepaidQuantity', type: 'Number'},
+                    {name: 'PrepaidTotalQuantity', type: 'Number'},
+                    {name: 'PrepaidUom', type: 'Text'},
+                    {name: 'IsRollover', type: 'Boolean'},
+                    {name: 'RolloverApply', type: 'Integer'},
+                    {name: 'RolloverPeriodLength', type: 'Integer'},
+                    {name: 'RolloverPeriods', type: 'Number'},
+                    {name: 'IsStackedDiscount', type: 'Boolean'},
+                    {name: 'DiscountLevel', type: 'Integer'},
+                    {name: 'DiscountClassId', type: 'Text'},
+                    {name: 'ApplyDiscountTo', type: 'Integer'},
+                    {name: 'ApplyToBillingPeriodPartially', type: 'Boolean'},
+                    {name: 'CommitmentType', type: 'Integer'},
+                    {name: 'CreditOption', type: 'Integer'},
+                    {name: 'DeliveryScheduleId', type: 'Text'},
+                    {name: 'DrawdownRate', type: 'Number'},
+                    {name: 'DrawdownUom', type: 'Text'},
+                    {name: 'PriceChangeOption', type: 'Integer'},
+                    {name: 'PriceIncreasePercentage', type: 'Number'},
+                    {name: 'PriceUpsellQuantityStacked', type: 'Boolean'},
+                    {name: 'ProductCategory', type: 'Text'},
+                    {name: 'ProductClass', type: 'Text'},
+                    {name: 'ProductFamily', type: 'Text'},
+                    {name: 'ProductLine', type: 'Text'},
+                    {name: 'ValidityPeriodType', type: 'Integer'},
+                    {name: 'IsUnbilled', type: 'Boolean'},
+                    {name: 'deleted', type: 'Boolean'},
+                    {name: 'AccountingCode', type: 'Text'},
+                    {name: 'AccountReceivableAccountingCodeId', type: 'Relationship'},
+                    {name: 'AdjustmentLiabilityAccountingCodeId', type: 'Relationship'},
+                    {name: 'AdjustmentRevenueAccountingCodeId', type: 'Relationship'},
+                    {name: 'ContractAssetAccountingCodeId', type: 'Relationship'},
+                    {name: 'ContractLiabilityAccountingCodeId', type: 'Relationship'},
+                    {name: 'ContractRecognizedRevenueAccountingCodeId', type: 'Relationship'},
+                    {name: 'DeferredRevenueAccount', type: 'Text'},
+                    {name: 'DeferredRevenueAccountingCodeId', type: 'Relationship'},
+                    {name: 'RecognizedRevenueAccount', type: 'Text'},
+                    {name: 'RecognizedRevenueAccountingCodeId', type: 'Relationship'},
+                    {name: 'UnbilledReceivablesAccountingCodeId', type: 'Relationship'},
+                    {name: 'RevRecCode', type: 'Text'},
+                    {name: 'RevRecTriggerCondition', type: 'Text'},
+                    {name: 'RevenueAmortizationMethod', type: 'Text'},
+                    {name: 'RevenueRecognitionRuleName', type: 'Text'},
+                    {name: 'RevenueRecognitionTiming', type: 'Text'},
+                    {name: 'UseDiscountSpecificAccountingCode', type: 'Boolean'},
+                    {name: 'UseTenantDefaultForPriceChange', type: 'Boolean'},
+                    {name: 'ExcludeItemBillingFromRevenueAccounting', type: 'Boolean'},
+                    {name: 'ExcludeItemBookingFromRevenueAccounting', type: 'Boolean'},
+                    {name: 'LegacyRevenueReporting', type: 'Boolean'},
+                    {name: 'UsageRecordRatingOption', type: 'Integer'},
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'}
+                ]
+            },
+            { id: 'product_rate_plan_charge_tier', name: 'Product Rate Plan Charge Tier', group: 'product', x: 80, y: 550, desc: 'Pricing boundary details for volume charges.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'ProductRatePlanChargeId', type: 'Relationship'}, {name: 'Price', type: 'Number'}] },
+            { 
+                id: 'product_feature', 
+                name: 'Product Feature', 
+                group: 'product', 
+                x: 80, 
+                y: 660, 
+                desc: 'Represents features associated with a product.', 
+                fields: [
+                    {name: 'Id', type: 'Text'},
+                    {name: 'ProductId', type: 'Text'},
+                    {name: 'FeatureId', type: 'Text'},
+                    {name: 'deleted', type: 'Boolean'},
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'}
+                ] 
+            },
+
+            // ORDERS & SUBSCRIPTIONS
+            { id: 'order', name: 'Order', group: 'orders', x: 410, y: 150, desc: 'Master transaction document establishing contractual change.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'AccountId', type: 'Relationship'}, {name: 'OrderNumber', type: 'Text'}] },
+            { id: 'ramp', name: 'Ramp', group: 'orders', x: 410, y: 260, desc: 'Defines milestones of price escalation intervals.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'OrderId', type: 'Relationship'}] },
+            { id: 'ramp_interval', name: 'Ramp Interval', group: 'orders', x: 410, y: 340, desc: 'Segment of pricing duration under a ramp.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'RampId', type: 'Relationship'}] },
+            { id: 'order_line_item', name: 'Order Line Item', group: 'orders', x: 380, y: 440, desc: 'A purchase of a non-subscription offering.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'OrderId', type: 'Relationship'}] },
+            { 
+                id: 'subscription', 
+                name: 'Subscription', 
+                group: 'orders', 
+                x: 640, 
+                y: 150, 
+                desc: 'Active subscription instance tracking live contracts.', 
+                fields: [
+                    {name: 'AccountId', type: 'Relationship'},
+                    {name: 'AutoRenew', type: 'Boolean'},
+                    {name: 'BillToContactId', type: 'Relationship'},
+                    {name: 'BillToContactSnapshotId', type: 'Text'},
+                    {name: 'CMRR', type: 'Number'},
+                    {name: 'CancelReason', type: 'Text'},
+                    {name: 'CancelledDate', type: 'Text'},
+                    {name: 'CommunicationProfileId', type: 'Text'},
+                    {name: 'ContractAcceptanceDate', type: 'Date'},
+                    {name: 'ContractEffectiveDate', type: 'Date'},
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'CreatorAccountId', type: 'Relationship'},
+                    {name: 'CreatorInvoiceOwnerId', type: 'Relationship'},
+                    {name: 'Currency', type: 'Text'},
+                    {name: 'CurrentTerm', type: 'Number'},
+                    {name: 'CurrentTermPeriodType', type: 'Integer'},
+                    {name: 'ExternallyManagedBy', type: 'Text'},
+                    {name: 'Id', type: 'Relationship'},
+                    {name: 'InitialTerm', type: 'Number'},
+                    {name: 'InitialTermPeriodType', type: 'Integer'},
+                    {name: 'InvoiceGroupNumber', type: 'Text'},
+                    {name: 'InvoiceOwnerId', type: 'Relationship'},
+                    {name: 'InvoiceScheduleId', type: 'Relationship'},
+                    {name: 'InvoiceTemplateId', type: 'Text'},
+                    {name: 'IsInvoiceSeparate', type: 'Boolean'},
+                    {name: 'IsLatestVersion', type: 'Boolean'},
+                    {name: 'IsSingleVersioned', type: 'Boolean'},
+                    {name: 'LastBookingDate', type: 'Text'},
+                    {name: 'Name', type: 'Text'},
+                    {name: 'Notes', type: 'Text'},
+                    {name: 'OrderId', type: 'Relationship'},
+                    {name: 'OriginalCreatedDate', type: 'Datetime'},
+                    {name: 'OriginalId', type: 'Text'},
+                    {name: 'PaymentGatewayId', type: 'Text'},
+                    {name: 'PaymentMethodId', type: 'Text'},
+                    {name: 'PaymentTerm', type: 'Text'},
+                    {name: 'Prepayment', type: 'Boolean'},
+                    {name: 'PreviousSubscriptionId', type: 'Relationship'},
+                    {name: 'RampId', type: 'Relationship'},
+                    {name: 'RenewalSetting', type: 'Integer'},
+                    {name: 'RenewalTerm', type: 'Number'},
+                    {name: 'RenewalTermPeriodType', type: 'Integer'},
+                    {name: 'Revision', type: 'Text'},
+                    {name: 'SequenceSetId', type: 'Text'},
+                    {name: 'ServiceActivationDate', type: 'Date'},
+                    {name: 'ShipToContactId', type: 'Text'},
+                    {name: 'ShipToContactSnapshotId', type: 'Text'},
+                    {name: 'SoldToContactId', type: 'Text'},
+                    {name: 'SoldToContactSnapshotId', type: 'Text'},
+                    {name: 'Status', type: 'Text'},
+                    {name: 'SubscriptionEndDate', type: 'Text'},
+                    {name: 'SubscriptionStartDate', type: 'Text'},
+                    {name: 'SubscriptionVersionAmendmentId', type: 'Relationship'},
+                    {name: 'TermEndDate', type: 'Text'},
+                    {name: 'TermStartDate', type: 'Text'},
+                    {name: 'TermType', type: 'Text'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'},
+                    {name: 'Version', type: 'Number'},
+                    {name: 'deleted', type: 'Boolean'}
+                ] 
+            },
+            { id: 'amendment', name: 'Amendment', group: 'orders', x: 640, y: 260, desc: 'Tracks historical deviations and subscription changes.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'SubscriptionId', type: 'Relationship'}] },
+            { id: 'order_action', name: 'Order Action', group: 'orders', x: 530, y: 350, desc: 'Indicates action execution type per line charge.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'OrderId', type: 'Relationship'}] },
+            { 
+                id: 'rate_plan', 
+                name: 'Subscription Rate Plan', 
+                group: 'orders', 
+                x: 640, 
+                y: 350, 
+                desc: 'Subscription pricing configuration schema rate details.', 
+                fields: [
+                    {name: 'AmendmentId', type: 'Relationship'},
+                    {name: 'AmendmentType', type: 'Text'},
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'ExternallyManagedPlanId', type: 'Text'},
+                    {name: 'Id', type: 'Relationship'},
+                    {name: 'InvoiceOwnerId', type: 'Text'},
+                    {name: 'Name', type: 'Text'},
+                    {name: 'OriginalRatePlanId', type: 'Text'},
+                    {name: 'PricingAttributes', type: 'Text'},
+                    {name: 'ProductId', type: 'Text'},
+                    {name: 'ProductRatePlanId', type: 'Relationship'},
+                    {name: 'Reverted', type: 'Boolean'},
+                    {name: 'SubscriptionId', type: 'Relationship'},
+                    {name: 'SubscriptionOfferId', type: 'Text'},
+                    {name: 'SubscriptionOwnerId', type: 'Text'},
+                    {name: 'SubscriptionRatePlanNumber', type: 'Text'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'},
+                    {name: 'deleted', type: 'Boolean'}
+                ] 
+            },
+            { id: 'rate_plan_charge', name: 'Rate Plan Charge', group: 'orders', x: 530, y: 550, desc: 'Live operational instance of subscription cost metrics.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'RatePlanId', type: 'Relationship'}] },
+            { id: 'rate_plan_charge_tier', name: 'Rate Plan Charge Tier', group: 'orders', x: 530, y: 650, desc: 'Specific tier pricing limits applied during execution.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'RatePlanChargeId', type: 'Relationship'}] },
+            {
+                id: 'subscription_product_feature',
+                name: 'Subscription Product Feature',
+                group: 'orders',
+                x: 640,
+                y: 480,
+                desc: 'Features associated with a subscription rate plan.',
+                fields: [
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'Description', type: 'Text'},
+                    {name: 'FeatureId', type: 'Text'},
+                    {name: 'Id', type: 'Text'},
+                    {name: 'Name', type: 'Text'},
+                    {name: 'RatePlanId', type: 'Text'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'},
+                    {name: 'deleted', type: 'Boolean'}
+                ]
+            },
+
+            // BILLING & PAYMENTS
+            { 
+                id: 'account', 
+                name: 'Account', 
+                group: 'billing', 
+                x: 1100, 
+                y: 140, 
+                desc: 'Customer Account core Master Hub.', 
+                fields: [
+                    {name: 'AccountNumber', type: 'Text'},
+                    {name: 'AdditionalEmailAddresses', type: 'Text'},
+                    {name: 'AllowInvoiceEdit', type: 'Boolean'},
+                    {name: 'AutoPay', type: 'Boolean'},
+                    {name: 'Balance', type: 'Number'},
+                    {name: 'Batch', type: 'Text'},
+                    {name: 'BcdSettingOption', type: 'Boolean'},
+                    {name: 'BillCycleDay', type: 'Text'},
+                    {name: 'BillToId', type: 'Relationship'},
+                    {name: 'CommunicationProfileId', type: 'Text'},
+                    {name: 'CreatedById', type: 'Relationship'},
+                    {name: 'CreatedDate', type: 'Datetime'},
+                    {name: 'CreditBalance', type: 'Number'},
+                    {name: 'CreditMemoTemplateId', type: 'Text'},
+                    {name: 'CrmId', type: 'Text'},
+                    {name: 'Currency', type: 'Text'},
+                    {name: 'CustomerServiceRepName', type: 'Text'},
+                    {name: 'DebitMemoTemplateId', type: 'Text'},
+                    {name: 'DefaultPaymentMethodId', type: 'Relationship'},
+                    {name: 'EinvoiceProfileId', type: 'Text'},
+                    {name: 'GatewayRoutingEligible', type: 'Boolean'},
+                    {name: 'Id', type: 'Relationship'},
+                    {name: 'InvoiceDeliveryPrefsEmail', type: 'Boolean'},
+                    {name: 'InvoiceDeliveryPrefsPrint', type: 'Boolean'},
+                    {name: 'InvoiceTemplateId', type: 'Text'},
+                    {name: 'LastInvoiceDate', type: 'Date'},
+                    {name: 'LastMetricsUpdate', type: 'Datetime'},
+                    {name: 'Mrr', type: 'Number'},
+                    {name: 'Name', type: 'Text'},
+                    {name: 'Notes', type: 'Text'},
+                    {name: 'OrganizationId', type: 'Text'},
+                    {name: 'ParentId', type: 'Relationship'},
+                    {name: 'PartnerAccount', type: 'Boolean'},
+                    {name: 'PaymentGateway', type: 'Text'},
+                    {name: 'PaymentMethodCascadingConsent', type: 'Boolean'},
+                    {name: 'PaymentTerm', type: 'Text'},
+                    {name: 'PurchaseOrderNumber', type: 'Text'},
+                    {name: 'ReservedPaymentAmount', type: 'Number'},
+                    {name: 'RollUpUsage', type: 'Boolean'},
+                    {name: 'SalesRepName', type: 'Text'},
+                    {name: 'SequenceSetId', type: 'Text'},
+                    {name: 'ShipToId', type: 'Text'},
+                    {name: 'SoldToId', type: 'Relationship'},
+                    {name: 'Status', type: 'Text'},
+                    {name: 'TaxCompanyCode', type: 'Text'},
+                    {name: 'TaxExemptCertificateID', type: 'Text'},
+                    {name: 'TaxExemptCertificateType', type: 'Text'},
+                    {name: 'TaxExemptDescription', type: 'Text'},
+                    {name: 'TaxExemptEffectiveDate', type: 'Date'},
+                    {name: 'TaxExemptEntityUseCode', type: 'Text'},
+                    {name: 'TaxExemptExpirationDate', type: 'Date'},
+                    {name: 'TaxExemptIssuingJurisdiction', type: 'Text'},
+                    {name: 'TaxExemptStatus', type: 'Text'},
+                    {name: 'TotalDebitMemoBalance', type: 'Number'},
+                    {name: 'TotalInvoiceBalance', type: 'Number'},
+                    {name: 'UnappliedBalance', type: 'Number'},
+                    {name: 'UnappliedCreditMemoAmount', type: 'Number'},
+                    {name: 'UpdatedById', type: 'Relationship'},
+                    {name: 'UpdatedDate', type: 'Datetime'},
+                    {name: 'VATId', type: 'Text'},
+                    {name: 'deleted', type: 'Boolean'}
+                ] 
+            },
+            { id: 'communication_profile', name: 'Communication Profile', group: 'billing', x: 920, y: 50, desc: 'Configures notification templates.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'contact', name: 'Contact', group: 'billing', x: 1100, y: 50, desc: 'Contains dynamic shipping and bill-to addresses.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'AccountId', type: 'Relationship'}] },
+            { id: 'attachment', name: 'Attachment', group: 'billing', x: 920, y: 220, desc: 'Attached agreements or contractual documentation.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'invoice', name: 'Invoice', group: 'billing', x: 1100, y: 330, desc: 'Standard ledger request for billing collections.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'AccountId', type: 'Relationship'}] },
+            { id: 'usage', name: 'Usage', group: 'billing', x: 920, y: 440, desc: 'High-volume metered consumption metrics raw records.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'invoice_item', name: 'Invoice Item', group: 'billing', x: 1100, y: 520, desc: 'Individual item line detailed charges within Invoice.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'InvoiceId', type: 'Relationship'}] },
+            { id: 'taxation_item', name: 'Taxation Item', group: 'billing', x: 1100, y: 610, desc: 'Taxes calculated per Invoice Item.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'InvoiceItemId', type: 'Relationship'}] },
+            
+            { id: 'payment_run', name: 'Payment Run', group: 'billing', x: 1350, y: 180, desc: 'Batch payment engine transaction processes.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'payment_part', name: 'Payment Part', group: 'billing', x: 1250, y: 310, desc: 'Splits payments across multiple distinct invoices.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'PaymentId', type: 'Relationship'}] },
+            { id: 'payment', name: 'Payment', group: 'billing', x: 1460, y: 270, desc: 'Captured financial collection settlement.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'AccountId', type: 'Relationship'}] },
+            { id: 'payment_method', name: 'Payment Method', group: 'billing', x: 1620, y: 100, desc: 'Customer gateway tokens and CC details.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'payment_method_snapshot', name: 'Payment Method Snapshot', group: 'billing', x: 1620, y: 170, desc: 'Frozen state of a payment token used on billing.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'refund', name: 'Refund', group: 'billing', x: 1850, y: 220, desc: 'Financial return processing representation.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'refund_part', name: 'Refund Part', group: 'billing', x: 1850, y: 310, desc: 'Reverses payments back to designated billing records.', fields: [{name: 'Id', type: 'Relationship'}, {name: 'RefundId', type: 'Relationship'}] },
+
+            { id: 'bill_run', name: 'Bill Run', group: 'billing', x: 1450, y: 470, desc: 'Batch billing scheduler and processing job.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'credit_memo_part', name: 'Credit Memo Part', group: 'billing', x: 1250, y: 390, desc: 'Credit memos matching across items.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'credit_memo_part_item', name: 'Credit Memo Part Item', group: 'billing', x: 1250, y: 550, desc: 'Granular lines for Credit Memo Parts.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'credit_memo', name: 'Credit Memo', group: 'billing', x: 1600, y: 390, desc: 'Ledger document reducing customer balance.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'credit_memo_item', name: 'Credit Memo Item', group: 'billing', x: 1600, y: 490, desc: 'Credit memo detailed adjustment items.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'credit_taxation_item', name: 'Credit Taxation Item', group: 'billing', x: 1600, y: 580, desc: 'Taxes adjusted under Credit Memo Item.', fields: [{name: 'Id', type: 'Relationship'}] },
+
+            { id: 'debit_memo', name: 'Debit Memo', group: 'billing', x: 1250, y: 690, desc: 'Invoice increase balance modifications.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'debit_memo_item', name: 'Debit Memo Item', group: 'billing', x: 1450, y: 690, desc: 'Debit memo detailed adjustment items.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'debit_taxation_item', name: 'Debit Taxation Item', group: 'billing', x: 1650, y: 690, desc: 'Tax adjustments under Debit Memo Item.', fields: [{name: 'Id', type: 'Relationship'}] },
+
+            // FINANCE
+            { id: 'chart_of_account', name: 'Chart of Account', group: 'finance', x: 80, y: 860, desc: 'Defines segment mappings for accounting integration.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'revenue_recognition_rule', name: 'Revenue Recognition Rule', group: 'finance', x: 80, y: 960, desc: 'Criteria and rules defining revenue schedule releases.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'revenue_charge_summary', name: 'Revenue Charge Summary', group: 'finance', x: 300, y: 840, desc: 'Aggregate calculations of charges for revenues.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'revenue_charge_summary_item', name: 'Revenue Charge Summary Item', group: 'finance', x: 300, y: 920, desc: 'Items mapping summary details for revenue periods.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'revenue_event', name: 'Revenue Event', group: 'finance', x: 500, y: 860, desc: 'Generated triggers indicating accounting milestone completions.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'revenue_event_item', name: 'Revenue Event Item', group: 'finance', x: 500, y: 940, desc: 'Granular items tracking event specifications.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'accounting_period', name: 'Accounting Period', group: 'finance', x: 500, y: 1020, desc: 'Ledger reporting timeframe boundary blocks.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'revenue_schedule', name: 'Revenue Schedule', group: 'finance', x: 750, y: 840, desc: 'Schedules mapping released revenues across target months.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'revenue_schedule_item', name: 'Revenue Schedule Item', group: 'finance', x: 750, y: 920, desc: 'Specific schedule records detailing exact amounts.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'journal_entry', name: 'Journal Entry', group: 'finance', x: 1300, y: 900, desc: 'Aggregated outputs ready to sync directly to GL tools.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'journal_entry_item', name: 'Journal Entry Item', group: 'finance', x: 1100, y: 1000, desc: 'Underlying transaction lines matching journal records.', fields: [{name: 'Id', type: 'Relationship'}] },
+            { id: 'journal_run', name: 'Journal Run', group: 'finance', x: 1700, y: 900, desc: 'Engine job creating journals across selected timeslots.', fields: [{name: 'Id', type: 'Relationship'}] }
+        ];
+
+        let defaultConnections = [
+            // Product Catalog Internal Relations
+            { from: 'product', to: 'product_rate_plan', type: 'one-to-many' },
+            { from: 'product', to: 'product_feature', type: 'one-to-many' },
+            { from: 'product_rate_plan', to: 'product_rate_plan_charge', type: 'one-to-many' },
+            { from: 'product_rate_plan_charge', to: 'product_rate_plan_charge_tier', type: 'one-to-many' },
+
+            // Product Catalog Cross-Links to Subscriptions
+            { from: 'product_rate_plan', to: 'rate_plan', type: 'one-to-many' },
+            { from: 'product_rate_plan_charge', to: 'rate_plan_charge', type: 'one-to-many' },
+            { from: 'product_rate_plan_charge_tier', to: 'rate_plan_charge_tier', type: 'one-to-many' },
+
+            // Orders and Subscriptions Hierarchy
+            { from: 'order', to: 'ramp', type: 'one-to-many' },
+            { from: 'ramp', to: 'ramp_interval', type: 'one-to-many' },
+            { from: 'order', to: 'order_line_item', type: 'one-to-many' },
+            { from: 'order', to: 'order_action', type: 'one-to-many' },
+            { from: 'order_action', to: 'rate_plan', type: 'one-to-many' },
+            { from: 'subscription', to: 'order_action', type: 'one-to-many' },
+            { from: 'subscription', to: 'amendment', type: 'one-to-many' },
+            { from: 'subscription', to: 'rate_plan', type: 'one-to-many' },
+            { from: 'rate_plan', to: 'rate_plan_charge', type: 'one-to-many' },
+            { from: 'rate_plan_charge', to: 'rate_plan_charge_tier', type: 'one-to-many' },
+            { from: 'rate_plan', to: 'subscription_product_feature', type: 'one-to-many' },
+
+            // Account Core Integrations
+            { from: 'account', to: 'order', type: 'one-to-many' },
+            { from: 'account', to: 'subscription', type: 'one-to-many' },
+            { from: 'account', to: 'communication_profile', type: 'one-to-one' },
+            { from: 'account', to: 'contact', type: 'one-to-many' },
+            { from: 'account', to: 'attachment', type: 'one-to-many' },
+            { from: 'account', to: 'payment_method', type: 'one-to-many' },
+            { from: 'account', to: 'invoice', type: 'one-to-many' },
+            { from: 'account', to: 'usage', type: 'one-to-many' },
+            { from: 'account', to: 'debit_memo', type: 'one-to-many' },
+            { from: 'account', to: 'credit_memo', type: 'one-to-many' },
+            { from: 'account', to: 'payment', type: 'one-to-many' },
+            { from: 'account', to: 'refund', type: 'one-to-many' },
+
+            // Billing document processing logic
+            { from: 'invoice', to: 'invoice_item', type: 'one-to-many' },
+            { from: 'invoice_item', to: 'taxation_item', type: 'one-to-many' },
+            { from: 'usage', to: 'invoice_item', type: 'one-to-many' },
+
+            // Cash Collection Flow
+            { from: 'payment_run', to: 'payment', type: 'one-to-many' },
+            { from: 'payment_method', to: 'payment', type: 'one-to-many' },
+            { from: 'payment_method', to: 'payment_method_snapshot', type: 'one-to-many' },
+            { from: 'payment_method_snapshot', to: 'payment', type: 'one-to-many' },
+            { from: 'payment', to: 'payment_part', type: 'one-to-many' },
+            { from: 'invoice', to: 'payment_part', type: 'one-to-many' },
+            { from: 'payment', to: 'refund', type: 'zero-to-one' },
+            { from: 'refund', to: 'refund_part', type: 'one-to-many' },
+            { from: 'payment_part', to: 'refund_part', type: 'one-to-many' },
+
+            // Memorandums, tax adjustments, and bill runs
+            { from: 'invoice', to: 'credit_memo_part', type: 'one-to-many' },
+            { from: 'credit_memo', to: 'credit_memo_part', type: 'one-to-many' },
+            { from: 'credit_memo', to: 'credit_memo_item', type: 'one-to-many' },
+            { from: 'credit_memo_item', to: 'credit_taxation_item', type: 'one-to-many' },
+            { from: 'credit_memo_part', to: 'credit_memo_part_item', type: 'one-to-many' },
+            { from: 'invoice_item', to: 'credit_memo_part_item', type: 'one-to-many' },
+            { from: 'bill_run', to: 'invoice', type: 'one-to-many' },
+
+            { from: 'debit_memo', to: 'debit_memo_item', type: 'one-to-many' },
+            { from: 'debit_memo_item', to: 'debit_taxation_item', type: 'one-to-many' },
+            { from: 'invoice_item', to: 'debit_memo_item', type: 'one-to-many' },
+
+            // Finance Subledger & Recognition
+            { from: 'revenue_recognition_rule', to: 'revenue_schedule', type: 'one-to-many' },
+            { from: 'revenue_charge_summary', to: 'revenue_charge_summary_item', type: 'one-to-many' },
+            { from: 'revenue_event', to: 'revenue_event_item', type: 'one-to-many' },
+            { from: 'revenue_schedule', to: 'revenue_schedule_item', type: 'one-to-many' },
+            { from: 'accounting_period', to: 'revenue_charge_summary_item', type: 'one-to-many' },
+            { from: 'accounting_period', to: 'revenue_event_item', type: 'one-to-many' },
+            { from: 'accounting_period', to: 'revenue_schedule_item', type: 'one-to-many' },
+            { from: 'journal_entry', to: 'journal_entry_item', type: 'one-to-many' },
+            { from: 'journal_run', to: 'journal_entry', type: 'one-to-many' }
+        ];
+
+        // System State parameters
+        let nodes = [...defaultNodes];
+        let connections = [...defaultConnections];
+        let selectedNodeId = null;
+        let activeTab = 'properties';
+        let showFieldsOnCanvas = false; // FIXED BUG: Set initial load visibility to false
+        let pathStyle = 'curve'; // curve or orthogonal
+        let hasDragged = false; // Tracks if actual movement occurred during click-drag
+        let hasCanvasDragged = false; // Tracks if actual canvas panning occurred
+        let startClientX = 0, startClientY = 0; // Tracking canvas drag start coordinates
+
+        // Pan/Zoom states
+        let zoomScale = 0.85;
+        let panX = 40;
+        let panY = 20;
+        let isPanning = false;
+        let startX, startY;
+
+        // Node card dimensions
+        const nodeWidth = 190;
+        const nodeMinHeight = 65;
+
+        // Element targets
+        const viewport = document.getElementById('canvas-viewport');
+        const workspace = document.getElementById('canvas-workspace');
+        const nodesContainer = document.getElementById('nodes-container');
+        const pathsContainer = document.getElementById('svg-paths-container');
+        const quickList = document.getElementById('entities-quick-list');
+
+        // Dragging state for single nodes
+        let draggedNodeId = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // INITIALIZE APP
+        window.onload = () => {
+            applyScale();
+            renderAll();
+            updateSidebarStats();
+            setupZoomWheel();
+        };
+
+        // SETUP CANVAS SCALE AND TRANSFORM
+        function applyScale() {
+            workspace.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+            document.getElementById('zoom-value').innerText = `${Math.round(zoomScale * 100)}%`;
+        }
+
+        // Expanded view tracking so users can easily see entire ERD boundary on startup
+        function fitToScreen() {
+            panX = 20;
+            panY = 20;
+            zoomScale = 0.55;
+            applyScale();
+        }
+
+        function adjustScale(amount) {
+            zoomScale = Math.max(0.2, Math.min(2.5, zoomScale + amount));
+            applyScale();
+        }
+
+        function setupZoomWheel() {
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = 0.05;
+                if (e.deltaY < 0) {
+                    zoomScale = Math.min(2.5, zoomScale + zoomFactor);
+                } else {
+                    zoomScale = Math.max(0.15, zoomScale - zoomFactor);
+                }
+                applyScale();
+            });
+        }
+
+        // CANVAS PANNING SYSTEM
+        function startCanvasDrag(e) {
+            // Prevent panning if user is clicking on an interactive card element
+            if (e.target.closest('.node-card') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
+                return;
+            }
+            isPanning = true;
+            hasCanvasDragged = false;
+            startClientX = e.clientX;
+            startClientY = e.clientY;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            document.addEventListener('mousemove', handleCanvasDrag);
+            document.addEventListener('mouseup', stopCanvasDrag);
+        }
+
+        function handleCanvasDrag(e) {
+            if (!isPanning) return;
+            const dist = Math.hypot(e.clientX - startClientX, e.clientY - startClientY);
+            if (dist > 3) {
+                hasCanvasDragged = true;
+            }
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            applyScale();
+        }
+
+        function stopCanvasDrag() {
+            isPanning = false;
+            document.removeEventListener('mousemove', handleCanvasDrag);
+            document.removeEventListener('mouseup', stopCanvasDrag);
+            
+            // If the user performed a standard single click on the canvas (without dragging/panning),
+            // trigger deselect action to clear highlights and collapse the side inspector.
+            if (!hasCanvasDragged) {
+                closeInspector();
+            }
+        }
+
+        // DOMAIN THEME RETRIEVAL
+        function getGroupColors(group) {
+            switch(group) {
+                case 'product':
+                    return {
+                        primary: 'border-emerald-200 hover:border-emerald-400',
+                        accent: 'bg-emerald-500',
+                        light: 'bg-emerald-50',
+                        headerBg: 'bg-gradient-to-r from-emerald-100 to-emerald-50/30',
+                        text: 'text-emerald-800'
+                    };
+                case 'orders':
+                    return {
+                        primary: 'border-sky-200 hover:border-sky-400',
+                        accent: 'bg-sky-500',
+                        light: 'bg-sky-50',
+                        headerBg: 'bg-gradient-to-r from-sky-100 to-sky-50/30',
+                        text: 'text-sky-800'
+                    };
+                case 'billing':
+                    return {
+                        primary: 'border-amber-200 hover:border-amber-400',
+                        accent: 'bg-amber-500',
+                        light: 'bg-amber-50',
+                        headerBg: 'bg-gradient-to-r from-amber-100 to-amber-50/30',
+                        text: 'text-amber-800'
+                    };
+                case 'finance':
+                    return {
+                        primary: 'border-rose-200 hover:border-rose-400',
+                        accent: 'bg-rose-500',
+                        light: 'bg-rose-50',
+                        headerBg: 'bg-gradient-to-r from-rose-100 to-rose-50/30',
+                        text: 'text-rose-800'
+                    };
+                default:
+                    return {
+                        primary: 'border-slate-200 hover:border-slate-400',
+                        accent: 'bg-slate-500',
+                        light: 'bg-slate-50',
+                        headerBg: 'bg-gradient-to-r from-slate-100 to-slate-50/30',
+                        text: 'text-slate-800'
+                    };
+            }
+        }
+
+        // SCHEMA VISIBILITY TOGGLE
+        function toggleFieldsDisplay() {
+            showFieldsOnCanvas = !showFieldsOnCanvas;
+            const btn = document.getElementById('btn-toggle-fields');
+            btn.innerHTML = showFieldsOnCanvas ? '<i class="fa-solid fa-table-list text-sky-500"></i><span>Fields: Visible</span>' : '<i class="fa-solid fa-table text-slate-500"></i><span>Fields: Hidden</span>';
+            renderAll();
+        }
+
+        // TOGGLE PATH STYLES
+        function togglePathStyle() {
+            pathStyle = pathStyle === 'curve' ? 'orthogonal' : 'curve';
+            const btn = document.getElementById('btn-path-style');
+            btn.innerHTML = pathStyle === 'curve' ? '<i class="fa-solid fa-bezier-curve text-emerald-500"></i><span>Line: Curved</span>' : '<i class="fa-solid fa-square-minus text-amber-500"></i><span>Line: Block Ortho</span>';
+            renderAll();
+        }
+
+        // RENDER CENTRAL CONTROLLER
+        function renderAll() {
+            renderNodes();
+            renderConnections();
+            renderQuickList();
+        }
+
+        // Estimates the visual height of node cards even on asynchronous render steps
+        function getNodeDimensions(node) {
+            const card = document.getElementById(`node-${node.id}`);
+            let width = nodeWidth; // 190
+            let height = nodeMinHeight; // 65
+            
+            if (card && card.offsetHeight > 0) {
+                height = card.offsetHeight;
+            } else {
+                // Highly robust height calculation fallback
+                if (showFieldsOnCanvas && node.fields && node.fields.length > 0) {
+                    // Header (approx 46px) + fields container padding (12px) + each field (approx 21px)
+                    height = 46 + 12 + (node.fields.length * 21);
+                } else {
+                    height = 46; // Header only height
+                }
+            }
+            return { width, height };
+        }
+
+        // RENDER SYSTEM NODES (DOM Cards)
+        function renderNodes() {
+            nodesContainer.innerHTML = '';
+            
+            nodes.forEach(node => {
+                const colors = getGroupColors(node.group);
+                const isSelected = node.id === selectedNodeId;
+                
+                // Construct card element wrapper (Light Mode Design)
+                const card = document.createElement('div');
+                card.id = `node-${node.id}`;
+                card.className = `node-card absolute pointer-events-auto bg-white border rounded-xl shadow-md hover:shadow-xl cursor-grab select-none overflow-hidden ${colors.primary} ${isSelected ? 'ring-2 ring-emerald-400/80 border-transparent scale-105 z-30 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.2)]' : 'z-10'}`;
+                card.style.left = `${node.x}px`;
+                card.style.top = `${node.y}px`;
+                card.style.width = `${nodeWidth}px`;
+
+                // Header / Fields viewport container list
+                let fieldsHtml = '';
+                if (showFieldsOnCanvas && node.fields && node.fields.length > 0) {
+                    // Elevated max-height to display rich structured schema fields cleanly on canvas
+                    fieldsHtml = `<div class="p-2 border-t border-slate-100 bg-slate-50/50 max-h-48 overflow-y-auto space-y-1 text-[9px]">`;
+                    node.fields.forEach(f => {
+                        fieldsHtml += `
+                            <div class="flex items-center justify-between text-slate-700 py-1 px-1.5 hover:bg-slate-100 rounded-md transition-colors">
+                                <span class="font-medium truncate flex items-center"><i class="fa-solid fa-key text-[7px] text-slate-400 mr-1.5"></i>${f.name}</span>
+                                <span class="text-[8px] code-font text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 shrink-0 font-medium">${f.type}</span>
+                            </div>
+                        `;
+                    });
+                    fieldsHtml += `</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="p-2.5 ${colors.headerBg} flex items-center justify-between">
+                        <div class="truncate mr-2">
+                            <h4 class="font-bold text-xs ${colors.text} truncate tracking-wide">${node.name}</h4>
+                            <p class="text-[8px] code-font text-slate-500 mt-0.5 truncate">${node.id}</p>
+                        </div>
+                        <i class="fa-solid fa-grip-vertical text-slate-400 text-xs shrink-0 cursor-move"></i>
+                    </div>
+                    ${fieldsHtml}
+                `;
+
+                // Add Drag-and-Drop listeners
+                card.onmousedown = (e) => startNodeDrag(e, node.id);
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    selectNode(node.id);
+                };
+
+                nodesContainer.appendChild(card);
+            });
+        }
+
+        // NODE DRAGGING SYSTEM
+        function startNodeDrag(e, id) {
+            // Only drag on handle or standard headers
+            if (e.target.closest('button') || e.target.closest('input')) return;
+            
+            draggedNodeId = id;
+            hasDragged = false; // Reset state on initial mousedown
+            const node = nodes.find(n => n.id === id);
+            
+            // Adjust calculation based on current zoom scale
+            dragOffset.x = (e.clientX / zoomScale) - node.x;
+            dragOffset.y = (e.clientY / zoomScale) - node.y;
+
+            document.addEventListener('mousemove', handleNodeDrag);
+            document.addEventListener('mouseup', stopNodeDrag);
+            
+            e.stopPropagation();
+        }
+
+        function handleNodeDrag(e) {
+            if (!draggedNodeId) return;
+            
+            // Register movement to protect click sequences
+            hasDragged = true;
+            const node = nodes.find(n => n.id === draggedNodeId);
+            if (!node) return;
+
+            // Restrict bounds of workspace
+            node.x = Math.max(10, Math.min(2200, (e.clientX / zoomScale) - dragOffset.x));
+            node.y = Math.max(10, Math.min(1150, (e.clientY / zoomScale) - dragOffset.y));
+
+            // Instantly update dragged visual positions
+            const card = document.getElementById(`node-${node.id}`);
+            if (card) {
+                card.style.left = `${node.x}px`;
+                card.style.top = `${node.y}px`;
+            }
+
+            // Real-time recalculation of SVG paths
+            renderConnections();
+        }
+
+        function stopNodeDrag() {
+            document.removeEventListener('mousemove', handleNodeDrag);
+            document.removeEventListener('mouseup', stopNodeDrag);
+            
+            // Critical selection bug fix: Only call renderAll() if an actual drag movement happened.
+            if (hasDragged) {
+                renderAll();
+            }
+            draggedNodeId = null;
+        }
+
+        // DYNAMIC RELATION PORTS CALCULATOR (Now uses getNodeDimensions for pixel-perfect port tracking)
+        function getBestPortMapping(nodeA, nodeB) {
+            const dimA = getNodeDimensions(nodeA);
+            const dimB = getNodeDimensions(nodeB);
+            
+            const wA = dimA.width;
+            const hA = dimA.height;
+            const wB = dimB.width;
+            const hB = dimB.height;
+
+            const portsA = [
+                { x: nodeA.x + (wA / 2), y: nodeA.y, side: 'top' },
+                { x: nodeA.x + (wA / 2), y: nodeA.y + hA, side: 'bottom' },
+                { x: nodeA.x, y: nodeA.y + (hA / 2), side: 'left' },
+                { x: nodeA.x + wA, y: nodeA.y + (hA / 2), side: 'right' }
+            ];
+
+            const portsB = [
+                { x: nodeB.x + (wB / 2), y: nodeB.y, side: 'top' },
+                { x: nodeB.x + (wB / 2), y: nodeB.y + hB, side: 'bottom' },
+                { x: nodeB.x, y: nodeB.y + (hB / 2), side: 'left' },
+                { x: nodeB.x + wB, y: nodeB.y + (hB / 2), side: 'right' }
+            ];
+
+            let minDistance = Infinity;
+            let bestA = portsA[0];
+            let bestB = portsB[0];
+
+            portsA.forEach(pA => {
+                portsB.forEach(pB => {
+                    const dist = Math.hypot(pA.x - pB.x, pA.y - pB.y);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        bestA = pA;
+                        bestB = pB;
+                    }
+                });
+            });
+
+            return { from: bestA, to: bestB };
+        }
+
+        // High-End Orthogonal Corner Rounding Algorithm (With dynamic collision dodging)
+        function getRoundedOrthogonalPath(startX, startY, endX, endY, startSide, endSide) {
+            const r = 8; // corner radius
+            let points = [];
+
+            const dx = Math.abs(startX - endX);
+            const dy = Math.abs(startY - endY);
+
+            if (dx < 10 && dy > 120 && (startSide === 'top' || startSide === 'bottom') && (endSide === 'top' || endSide === 'bottom')) {
+                // Detour to the right of intermediate cards to bypass overlapping
+                const detourX = startX + 115; // Safe margin past 190px card width
+                points = [
+                    { x: startX, y: startY },
+                    { x: detourX, y: startY },
+                    { x: detourX, y: endY },
+                    { x: endX, y: endY }
+                ];
+            } else if (startSide === 'left' || startSide === 'right' || endSide === 'left' || endSide === 'right') {
+                const midX = (startX + endX) / 2;
+                points = [
+                    { x: startX, y: startY },
+                    { x: midX, y: startY },
+                    { x: midX, y: endY },
+                    { x: endX, y: endY }
+                ];
+            } else {
+                const midY = (startY + endY) / 2;
+                points = [
+                    { x: startX, y: startY },
+                    { x: startX, y: midY },
+                    { x: endX, y: midY },
+                    { x: endX, y: endY }
+                ];
+            }
+
+            // Build SVG path with rounded corners
+            let path = `M ${points[0].x} ${points[0].y}`;
+            for (let i = 1; i < points.length - 1; i++) {
+                const prev = points[i - 1];
+                const curr = points[i];
+                const next = points[i + 1];
+
+                const d1x = curr.x - prev.x;
+                const d1y = curr.y - prev.y;
+                const d2x = next.x - curr.x;
+                const d2y = next.y - curr.y;
+
+                const len1 = Math.hypot(d1x, d1y);
+                const len2 = Math.hypot(d2x, d2y);
+
+                const actualR = Math.min(r, len1 / 2, len2 / 2);
+
+                if (actualR > 0) {
+                    const startCurveX = curr.x - (d1x / len1) * actualR;
+                    const startCurveY = curr.y - (d1y / len1) * actualR;
+                    const endCurveX = curr.x + (d2x / len2) * actualR;
+                    const endCurveY = curr.y + (d2y / len2) * actualR;
+
+                    path += ` L ${startCurveX} ${startCurveY}`;
+                    path += ` Q ${curr.x} ${curr.y}, ${endCurveX} ${endCurveY}`;
+                } else {
+                    path += ` L ${curr.x} ${curr.y}`;
+                }
+            }
+            path += ` L ${points[points.length - 1].x} ${points[points.length - 1].y}`;
+            return path;
+        }
+
+        // SVG CONNECTIONS RENDERING (Improved curved & rounded orthogonal block routing)
+        function renderConnections() {
+            pathsContainer.innerHTML = '';
+            
+            connections.forEach((conn, index) => {
+                const nodeA = nodes.find(n => n.id === conn.from);
+                const nodeB = nodes.find(n => n.id === conn.to);
+                
+                if (!nodeA || !nodeB) return;
+
+                const mapping = getBestPortMapping(nodeA, nodeB);
+                const start = mapping.from;
+                const end = mapping.to;
+
+                // Set offsetVal to 1px so markers sit flush against the card borders without clipping
+                const offsetVal = 1;
+                let startX = start.x;
+                let startY = start.y;
+                let endX = end.x;
+                let endY = end.y;
+
+                if (start.side === 'top') startY -= offsetVal;
+                else if (start.side === 'bottom') startY += offsetVal;
+                else if (start.side === 'left') startX -= offsetVal;
+                else if (start.side === 'right') startX += offsetVal;
+
+                if (end.side === 'top') endY -= offsetVal;
+                else if (end.side === 'bottom') endY += offsetVal;
+                else if (end.side === 'left') endX -= offsetVal;
+                else if (end.side === 'right') endX += offsetVal;
+
+                let pathData = '';
+                
+                if (pathStyle === 'curve') {
+                    let cpX1 = startX;
+                    let cpY1 = startY;
+                    let cpX2 = endX;
+                    let cpY2 = endY;
+
+                    const dx = Math.abs(startX - endX);
+                    const dy = Math.abs(startY - endY);
+
+                    // Control point tension based on the ports' sides
+                    if (start.side === 'left' || start.side === 'right') {
+                        const tension = Math.min(120, Math.max(40, dx * 0.4));
+                        cpX1 = start.side === 'left' ? startX - tension : startX + tension;
+                    } else {
+                        const tension = Math.min(120, Math.max(40, dy * 0.4));
+                        cpY1 = start.side === 'top' ? startY - tension : startY + tension;
+                        
+                        // Smart Card Dodging: If lines are vertical and span across cards,
+                        // sweep the control points outward to avoid overlaps.
+                        if (dx < 10 && dy > 120) {
+                            const sweep = 75; // Bypasses cards dynamically
+                            cpX1 += sweep;
+                            cpX2 += sweep;
+                        }
+                    }
+
+                    if (end.side === 'left' || end.side === 'right') {
+                        const tension = Math.min(120, Math.max(40, dx * 0.4));
+                        cpX2 = end.side === 'left' ? endX - tension : endX + tension;
+                    } else {
+                        const tension = Math.min(120, Math.max(40, dy * 0.4));
+                        cpY2 = end.side === 'top' ? endY - tension : endY + tension;
+                    }
+
+                    pathData = `M ${startX} ${startY} C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${endX} ${endY}`;
+                } else {
+                    pathData = getRoundedOrthogonalPath(startX, startY, endX, endY, start.side, end.side);
+                }
+
+                const isSelected = (selectedNodeId === conn.from || selectedNodeId === conn.to);
+                
+                let markerId = 'normal';
+                if (conn.type === 'one-to-many') markerId = isSelected ? 'crow-selected' : 'crow';
+                if (conn.type === 'zero-to-one') markerId = isSelected ? 'zero-one-selected' : 'zero-one';
+                if (conn.type === 'one-to-one') markerId = isSelected ? 'one-one-selected' : 'one-one';
+                if (conn.type === 'normal' && isSelected) markerId = 'normal-selected';
+
+                const strokeColor = isSelected ? '#10b981' : '#94a3b8';
+                const strokeWidth = isSelected ? '2.5' : '1.25';
+                const opacity = isSelected ? '1.0' : '0.65';
+
+                const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                pathElement.setAttribute("d", pathData);
+                pathElement.setAttribute("fill", "none");
+                pathElement.setAttribute("stroke", strokeColor);
+                pathElement.setAttribute("stroke-width", strokeWidth);
+                pathElement.setAttribute("opacity", opacity);
+                pathElement.setAttribute("marker-end", `url(#${markerId})`);
+                
+                if (isSelected) {
+                    pathElement.setAttribute("class", "glow-line transition-all duration-150");
+                } else {
+                    pathElement.setAttribute("class", "transition-all duration-150");
+                }
+
+                pathsContainer.appendChild(pathElement);
+            });
+        }
+
+        // RENDER QUICK SELECT MENU ON SIDEBAR
+        function renderQuickList() {
+            quickList.innerHTML = '';
+            
+            nodes.forEach(node => {
+                const colors = getGroupColors(node.group);
+                const item = document.createElement('button');
+                item.className = `w-full flex items-center justify-between text-left p-2 rounded-lg text-xs transition duration-150 ${node.id === selectedNodeId ? 'bg-emerald-550/10 border border-emerald-200/50 text-emerald-800 font-semibold shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-transparent'}`;
+                item.onclick = () => selectNode(node.id);
+                
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2 truncate">
+                        <span class="w-2 h-2 rounded-full ${colors.accent}"></span>
+                        <span class="truncate font-medium">${node.name}</span>
+                    </div>
+                    <span class="text-[9px] code-font text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">${node.fields ? node.fields.length : 0} f</span>
+                `;
+                quickList.appendChild(item);
+            });
+        }
+
+        function updateSidebarStats() {
+            document.getElementById('entity-count').innerText = `${nodes.length} Entities`;
+        }
+
+        // FOCUS ON DOMAIN REGION ON CANVAS
+        function focusGroup(group) {
+            const groupNodes = nodes.filter(n => n.group === group);
+            if (groupNodes.length === 0) return;
+
+            // Calculate bounding area of specific domain
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            groupNodes.forEach(node => {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x);
+                maxY = Math.max(maxY, node.y);
+            });
+
+            // Center workspace viewport on this calculated bound
+            const midX = (minX + maxX) / 2;
+            const midY = (minY + maxY) / 2;
+
+            panX = (viewport.offsetWidth / 2) - (midX * zoomScale);
+            panY = (viewport.offsetHeight / 2) - (midY * zoomScale);
+            
+            applyScale();
+        }
+
+        // HIGHLIGHT AND SELECT NODE
+        function selectNode(id) {
+            selectedNodeId = id;
+            renderAll();
+
+            // Populate inspector details
+            const node = nodes.find(n => n.id === id);
+            if (!node) return;
+
+            // Slide Open Inspector Panel smoothly (Light border setup)
+            const panel = document.getElementById('inspector-panel');
+            panel.classList.remove('w-0', 'border-transparent');
+            panel.classList.add('w-96', 'border-slate-200');
+
+            document.getElementById('inspector-empty-state').classList.add('hidden');
+            document.getElementById('inspector-content').classList.remove('hidden');
+            document.getElementById('inspector-content').classList.add('flex');
+
+            const colors = getGroupColors(node.group);
+            const indicator = document.getElementById('active-entity-indicator');
+            indicator.className = `w-3 h-3 rounded-full ${colors.accent}`;
+
+            document.getElementById('active-entity-title').innerText = node.name;
+            document.getElementById('inp-entity-name').value = node.name;
+            document.getElementById('inp-entity-api').value = node.id;
+            document.getElementById('inp-entity-group').value = node.group;
+            document.getElementById('inp-entity-desc').value = node.desc || '';
+
+            // Render Tabs
+            renderFieldsTab();
+            renderRelationshipsTab();
+        }
+
+        function closeInspector() {
+            selectedNodeId = null;
+
+            // Slide Collapse Inspector Panel smoothly
+            const panel = document.getElementById('inspector-panel');
+            panel.classList.remove('w-96', 'border-slate-200');
+            panel.classList.add('w-0', 'border-transparent');
+
+            document.getElementById('inspector-content').classList.remove('flex');
+            document.getElementById('inspector-content').classList.add('hidden');
+            document.getElementById('inspector-empty-state').classList.remove('hidden');
+            renderAll();
+        }
+
+        // TAB SWITCHER
+        function switchTab(tab) {
+            activeTab = tab;
+            
+            // Toggle active classes on tab buttons
+            const tabs = ['properties', 'fields', 'relationships'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const view = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = "flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50/30";
+                    view.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 py-3 text-center text-slate-400 hover:text-slate-600 border-b border-slate-200";
+                    view.classList.add('hidden');
+                }
+            });
+        }
+
+        // PROPERTIES ACTIONS
+        function updateActiveNodeProperty(property, value) {
+            if (!selectedNodeId) return;
+            const node = nodes.find(n => n.id === selectedNodeId);
+            if (!node) return;
+
+            if (property === 'name') {
+                node.name = value;
+                document.getElementById('active-entity-title').innerText = value;
+            } else if (property === 'desc') {
+                node.desc = value;
+            } else if (property === 'group') {
+                node.group = value;
+                // Move node coordinates into correct domain bounds initially
+                if (value === 'product') { node.x = 100; node.y = 350; }
+                if (value === 'orders') { node.x = 450; node.y = 200; }
+                if (value === 'billing') { node.x = 1100; node.y = 200; }
+                if (value === 'finance') { node.x = 450; node.y = 850; }
+            }
+            renderAll();
+        }
+
+        function deleteActiveEntity() {
+            if (!selectedNodeId) return;
+            // Filter connections pointing to deleted node
+            connections = connections.filter(c => c.from !== selectedNodeId && c.to !== selectedNodeId);
+            nodes = nodes.filter(n => n.id !== selectedNodeId);
+            closeInspector();
+            updateSidebarStats();
+        }
+
+        // SCHEMA ACTIONS
+        function renderFieldsTab() {
+            const node = nodes.find(n => n.id === selectedNodeId);
+            const container = document.getElementById('fields-list-container');
+            container.innerHTML = '';
+
+            if (!node.fields || node.fields.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-6">No custom fields defined yet.</div>`;
+                return;
+            }
+
+            node.fields.forEach((field, index) => {
+                const row = document.createElement('div');
+                row.className = "bg-slate-50 border border-slate-200 rounded-lg p-2.5 flex items-center space-x-2";
+                row.innerHTML = `
+                    <input type="text" value="${field.name}" oninput="updateFieldProperty(${index}, 'name', this.value)" class="flex-grow bg-white border border-slate-200 rounded-md px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-500 code-font">
+                    <select onchange="updateFieldProperty(${index}, 'type', this.value)" class="bg-white border border-slate-200 rounded-md px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-500">
+                        <option value="Relationship" ${field.type === 'Relationship' ? 'selected' : ''}>Relationship</option>
+                        <option value="Text" ${field.type === 'Text' ? 'selected' : ''}>Text</option>
+                        <option value="Integer" ${field.type === 'Integer' ? 'selected' : ''}>Integer</option>
+                        <option value="Number" ${field.type === 'Number' ? 'selected' : ''}>Number</option>
+                        <option value="Date" ${field.type === 'Date' ? 'selected' : ''}>Date</option>
+                        <option value="Datetime" ${field.type === 'Datetime' ? 'selected' : ''}>Datetime</option>
+                        <option value="Boolean" ${field.type === 'Boolean' ? 'selected' : ''}>Boolean</option>
+                    </select>
+                    <button onclick="removeField(${index})" class="text-red-500 hover:text-red-600 transition p-1.5"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addSchemaField() {
+            const node = nodes.find(n => n.id === selectedNodeId);
+            if (!node) return;
+            if (!node.fields) node.fields = [];
+            node.fields.push({ name: 'NewField', type: 'Text' });
+            renderFieldsTab();
+            renderAll();
+        }
+
+        function updateFieldProperty(index, property, value) {
+            const node = nodes.find(n => n.id === selectedNodeId);
+            if (!node || !node.fields[index]) return;
+            node.fields[index][property] = value;
+            renderAll();
+        }
+
+        function removeField(index) {
+            const node = nodes.find(n => n.id === selectedNodeId);
+            if (!node) return;
+            node.fields.splice(index, 1);
+            renderFieldsTab();
+            renderAll();
+        }
+
+        // RELATIONSHIPS ACTIONS
+        function renderRelationshipsTab() {
+            const container = document.getElementById('relationships-list-container');
+            container.innerHTML = '';
+
+            const nodeRelations = connections.filter(c => c.from === selectedNodeId || c.to === selectedNodeId);
+
+            if (nodeRelations.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-500 italic text-center py-6">No relationships mapped.</div>`;
+                return;
+            }
+
+            nodeRelations.forEach((conn, idx) => {
+                const source = nodes.find(n => n.id === conn.from);
+                const target = nodes.find(n => n.id === conn.to);
+                if (!source || !target) return;
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs flex flex-col space-y-2";
+                
+                let relationTypeDesc = '';
+                if (conn.type === 'one-to-many') relationTypeDesc = 'One-to-many';
+                if (conn.type === 'zero-to-one') relationTypeDesc = 'Zero-or-one';
+                if (conn.type === 'one-to-one') relationTypeDesc = 'One-to-one';
+                if (conn.type === 'normal') relationTypeDesc = 'Normal Link';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-700 flex items-center">${source.name} <i class="fa-solid fa-arrow-right text-slate-400 mx-2 text-[10px]"></i> ${target.name}</span>
+                        <button onclick="removeConnection(${idx})" class="text-red-500 hover:text-red-600 p-1 transition"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                        <span>Mapping: ${relationTypeDesc}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function removeConnection(idx) {
+            // Locate connections filtered only from relationships tab scope index
+            const activeRelations = connections.filter(c => c.from === selectedNodeId || c.to === selectedNodeId);
+            const targetConn = activeRelations[idx];
+            
+            connections = connections.filter(c => c !== targetConn);
+            renderRelationshipsTab();
+            renderAll();
+        }
+
+        // DIALOG / CREATE DYNAMIC LINK MODALS
+        function addCustomNode() {
+            const idInput = `custom_${Math.floor(Math.random() * 1000)}`;
+            const newNode = {
+                id: idInput,
+                name: 'New Custom Object',
+                group: 'orders',
+                x: 450,
+                y: 250,
+                desc: 'Created via dynamic architectural tool.',
+                fields: [{ name: 'Id', type: 'Relationship' }]
+            };
+            nodes.push(newNode);
+            renderAll();
+            selectNode(idInput);
+            updateSidebarStats();
+        }
+
+        // Connections setup modal launcher
+        function addCustomConnection() {
+            // Build selector targets mapping dropdown contents
+            const sourceSelect = document.getElementById('select-conn-source');
+            const targetSelect = document.getElementById('select-conn-target');
+
+            sourceSelect.innerHTML = '';
+            targetSelect.innerHTML = '';
+
+            nodes.forEach(node => {
+                sourceSelect.add(new Option(node.name, node.id));
+                targetSelect.add(new Option(node.name, node.id));
+            });
+
+            document.getElementById('modal-connect').classList.remove('hidden');
+        }
+
+        function saveCustomConnection() {
+            const source = document.getElementById('select-conn-source').value;
+            const target = document.getElementById('select-conn-target').value;
+            const type = document.getElementById('select-conn-cardinality').value;
+
+            if (source === target) {
+                alert("Self-references are disabled in simple layout logic.");
+                return;
+            }
+
+            connections.push({ from: source, to: target, type: type });
+            closeModal('modal-connect');
+            renderAll();
+            
+            // Refresh relationships panel if currently selected on either source or target
+            if (selectedNodeId === source || selectedNodeId === target) {
+                renderRelationshipsTab();
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // ARCHITECTURE SEARCH SYSTEM
+        function handleSearch(query) {
+            if (!query) {
+                renderAll();
+                return;
+            }
+
+            const cleanQuery = query.toLowerCase();
+            const matchedNode = nodes.find(node => 
+                node.name.toLowerCase().includes(cleanQuery) || 
+                node.id.toLowerCase().includes(cleanQuery)
+            );
+
+            if (matchedNode) {
+                // Dim non-matches by selectively highlighting match targets
+                const cards = document.querySelectorAll('.node-card');
+                cards.forEach(card => {
+                    const cardId = card.id.replace('node-', '');
+                    if (cardId === matchedNode.id) {
+                        card.style.opacity = '1';
+                        card.style.transform = 'scale(1.05)';
+                    } else {
+                        card.style.opacity = '0.25';
+                        card.style.transform = 'scale(0.95)';
+                    }
+                });
+
+                // Smooth center camera track
+                panX = (viewport.offsetWidth / 2) - (matchedNode.x * zoomScale);
+                panY = (viewport.offsetHeight / 2) - (matchedNode.y * zoomScale);
+                applyScale();
+            }
+        }
+
+        // EXPORT & IMPORT UTILITIES (JSON)
+        function exportJSON() {
+            const payload = JSON.stringify({ nodes, connections }, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(payload);
+            
+            const exportFileDefaultName = 'zuora_custom_object_model.json';
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.nodes && data.connections) {
+                        nodes = data.nodes;
+                        connections = data.connections;
+                        renderAll();
+                        updateSidebarStats();
+                        fitToScreen();
+                    } else {
+                        alert("Invalid JSON schema. Ensure root includes 'nodes' and 'connections' fields.");
+                    }
+                } catch (err) {
+                    alert("Failed to parse loaded JSON architectural file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetToDefaultLayout() {
+            if (confirm("Reset current arrangement? Any custom positions, schema fields, or custom links will revert to standard defaults.")) {
+                nodes = JSON.parse(JSON.stringify(defaultNodes));
+                connections = JSON.parse(JSON.stringify(defaultConnections));
+                fitToScreen();
+                closeInspector();
+                renderAll();
+                updateSidebarStats();
+            }
+        }
+    </script>
+</body>
+</html>
